@@ -13,10 +13,6 @@ jobs:
   package:
     runs-on: windows-latest
 
-    defaults:
-      run:
-        working-directory: artifacts/school-timetable
-
     steps:
       - uses: actions/checkout@v4
 
@@ -54,5 +50,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SchoolTimetableSetup-win-x64
-          path: artifacts/school-timetable/release/SchoolTimetableSetup.exe
+          path: release/SchoolTimetableSetup.exe
+          if-no-files-found: errorse/SchoolTimetableSetup.exe
           if-no-files-found: error
