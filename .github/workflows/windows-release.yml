@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: artifacts/school-timetable/pnpm-lock.yaml
 
       - uses: actions/setup-python@v5
         with:
