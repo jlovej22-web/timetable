@@ -20,8 +20,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path build-source
-          Expand-Archive -Path timetable-source.zip -DestinationPath build-source -Force
-
+          tar -xf timetable-source.zip -C build-source
+          
       - name: Show extracted files
         shell: pwsh
         run: |
