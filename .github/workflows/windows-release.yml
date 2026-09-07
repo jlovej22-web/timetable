@@ -1,0 +1,59 @@
+name: Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: artifacts/school-timetable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install engine build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r engine/requirements.txt
+
+      - name: Typecheck and regression tests
+        run: |
+          pnpm run typecheck
+          pnpm run test:regression
+          python -m unittest engine/test_timetable_engine.py
+          pnpm run benchmark
+
+      - name: Build engine and package x64 NSIS installer
+        run: pnpm run build:win
+
+      - name: Upload SchoolTimetableSetup.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchoolTimetableSetup-win-x64
+          path: artifacts/school-timetable/release/SchoolTimetableSetup.exe
+          if-no-files-found: error
