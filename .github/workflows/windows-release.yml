@@ -27,7 +27,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install JavaScript dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install engine build dependencies
         shell: pwsh
