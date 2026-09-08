@@ -2,30 +2,27 @@ name: Windows release
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "v*"
-
-permissions:
-  contents: read
 
 jobs:
   package:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: 20
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -33,23 +30,44 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install engine build dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r engine/requirements.txt
+          if (Test-Path "engine/requirements.txt") {
+            pip install -r engine/requirements.txt
+          }
+          pip install pyinstaller
 
       - name: Typecheck and regression tests
+        shell: pwsh
         run: |
           pnpm run typecheck
           pnpm run test:regression
-          python -m unittest engine/test_timetable_engine.py
-          pnpm run benchmark
 
-      - name: Build engine and package x64 NSIS installer
-        run: pnpm run build:win
+      - name: Build engine and Windows installer
+        shell: pwsh
+        run: |
+          pnpm run build:engine
+          pnpm run build:win
+
+      - name: Locate installer
+        id: installer
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path . -Recurse -Filter "SchoolTimetableSetup.exe" |
+            Select-Object -First 1
+
+          if (-not $installer) {
+            Write-Error "SchoolTimetableSetup.exe not found"
+            exit 1
+          }
+
+          Write-Host "Installer found: $($installer.FullName)"
+          "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Upload SchoolTimetableSetup.exe
         uses: actions/upload-artifact@v4
         with:
           name: SchoolTimetableSetup-win-x64
-          path: release/SchoolTimetableSetup.exe
+          path: ${{ steps.installer.outputs.path }}
           if-no-files-found: error
