@@ -16,17 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract timetable source
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path build-source
-          tar -xf timetable-source.zip -C build-source
-          
-      - name: Show extracted files
-        shell: pwsh
-        run: |
-          Get-ChildItem -Path build-source -Recurse -Depth 2 | Select-Object FullName
-
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -34,40 +23,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Locate package.json
-        id: locate
-        shell: pwsh
-        run: |
-          $pkg = Get-ChildItem -Path build-source -Filter package.json -Recurse | Select-Object -First 1
-          if (-not $pkg) {
-            Write-Error "package.json not found after extracting timetable-source.zip"
-            exit 1
-          }
-
-          $appDir = $pkg.Directory.FullName
-          Write-Host "Application directory: $appDir"
-          "app_dir=$appDir" >> $env:GITHUB_OUTPUT
-
       - name: Install JavaScript dependencies
-        shell: pwsh
-        working-directory: ${{ steps.locate.outputs.app_dir }}
         run: pnpm install --frozen-lockfile
 
       - name: Install engine build dependencies
-        shell: pwsh
-        working-directory: ${{ steps.locate.outputs.app_dir }}
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r engine/requirements.txt
 
       - name: Typecheck and regression tests
-        shell: pwsh
-        working-directory: ${{ steps.locate.outputs.app_dir }}
         run: |
           pnpm run typecheck
           pnpm run test:regression
@@ -75,26 +45,11 @@ jobs:
           pnpm run benchmark
 
       - name: Build engine and package x64 NSIS installer
-        shell: pwsh
-        working-directory: ${{ steps.locate.outputs.app_dir }}
         run: pnpm run build:win
-
-      - name: Locate installer
-        id: installer
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Path build-source -Filter SchoolTimetableSetup.exe -Recurse | Select-Object -First 1
-          if (-not $exe) {
-            Write-Error "SchoolTimetableSetup.exe not found"
-            exit 1
-          }
-
-          Write-Host "Installer: $($exe.FullName)"
-          "installer_path=$($exe.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Upload SchoolTimetableSetup.exe
         uses: actions/upload-artifact@v4
         with:
           name: SchoolTimetableSetup-win-x64
-          path: ${{ steps.installer.outputs.installer_path }}
+          path: release/SchoolTimetableSetup.exe
           if-no-files-found: error
