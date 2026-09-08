@@ -46,9 +46,12 @@ jobs:
 
       - name: Build engine and Windows installer
         shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: |
           pnpm run build:engine
-           pnpm run build:win -- --publish never
+          pnpm run desktop:build
+          pnpm exec electron-builder --win nsis --x64 --publish never
 
       - name: Locate installer
         id: installer
