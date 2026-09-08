@@ -12,6 +12,7 @@ import {
   useLocation,
   Router as WouterRouter,
 } from 'wouter';
+import { useHashLocation } from 'wouter/use-hash-location';
 
 const queryClient = new QueryClient();
 
@@ -33,13 +34,27 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function AppRouter() {
+  if (window.location.protocol === 'file:') {
+    return (
+      <WouterRouter hook={useHashLocation}>
+        <Router />
+      </WouterRouter>
+    );
+  }
+
+  return (
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <Router />
+    </WouterRouter>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
+        <AppRouter />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

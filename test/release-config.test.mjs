@@ -30,6 +30,12 @@ test('packaged application carries the Windows engine executable', () => {
   assert.match(packageJson.scripts['build:win'], /electron-builder --win nsis --x64/);
 });
 
+test('packaged renderer uses hash routing for file URLs', async () => {
+  const appSource = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(appSource, /window\.location\.protocol === 'file:'/);
+  assert.match(appSource, /hook=\{useHashLocation\}/);
+});
+
 test('project-owned engine and scalable fixture are present', async () => {
   await access(new URL('../engine/timetable_engine.py', import.meta.url));
   const fixture = await import('../tools/fixtures/large-scale.mjs');
